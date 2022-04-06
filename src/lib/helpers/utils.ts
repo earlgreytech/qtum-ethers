@@ -33,6 +33,26 @@ import { decode } from "./hex-decoder";
 import { computePublicKey } from "@ethersproject/signing-key";
 import { TransactionRequest } from "@ethersproject/abstract-provider";
 
+// @ts-ignore
+function warn(a?, b?, c?, d?, e?, f?, g?) {
+    try {
+        // @ts-ignore
+        console.warn.apply(this, arguments);
+    } catch (e) {
+
+    }
+}
+
+// @ts-ignore
+function log(a?, b?, c?, d?, e?, f?, g?, h?, i?, j?, k?) {
+    try {
+        // @ts-ignore
+        console.log.apply(this, arguments);
+    } catch (e) {
+
+    }
+}
+
 // const toBuffer = require('typedarray-to-buffer')
 const bitcoinjs = require("bitcoinjs-lib");
 
@@ -406,6 +426,7 @@ export async function addVins(outputs: Array<any>, utxos: Array<ListUTXOs>, need
         const outputVSize: number = spendVSizeLookupMap[typ.toLowerCase()];
         vbytes = vbytes.add(outputVSize);
         const fee = BigNumberEthers.from(vbytes).mul(gasPrice);
+        log("fee = ", fee.toString(), " bytes: ", vbytes, " gasPrice: ", gasPrice.toString());
 
         inputsAmount = inputsAmount.add(utxoValue);
         amounts.push(utxoValue);
@@ -421,7 +442,11 @@ export async function addVins(outputs: Array<any>, utxos: Array<ListUTXOs>, need
                 // not sending all
                 // confirm that there is enough in inputs to cover network fees
                 const neededAmountPlusFees = neededAmountBN.add(fee);
-                const neededAmountPlusFeesAndChange = neededAmountPlusFees.add(outputVSizeLookupMap[changeType]);
+                const changeFee = BigNumberEthers.from(outputVSizeLookupMap[changeType]).mul(gasPrice).toNumber();
+                const neededAmountPlusFeesAndChange = neededAmountPlusFees.add(changeFee);
+                log("Change fee: ", changeFee);
+                log("totalNeeded: ", totalNeeded.toString())
+                log("fee: ", fee.toString());
                 if (inputsAmount.eq(neededAmountPlusFees)) {
                     // no change output required, matches exactly
                     needMoreInputs = false;
@@ -438,7 +463,11 @@ export async function addVins(outputs: Array<any>, utxos: Array<ListUTXOs>, need
         } else if (neededAmountBN.lt(inputsAmount)) {
             // have enough, check that there is enough change to cover fees
             const totalNeededPlusFees = totalNeeded.add(fee);
-            const totalNeededPlusFeesAndChange = totalNeededPlusFees.add(outputVSizeLookupMap[changeType]);
+            const changeFee = BigNumberEthers.from(outputVSizeLookupMap[changeType]).mul(gasPrice).toNumber();
+            log("Change fee: ", changeFee);
+            log("totalNeeded: ", totalNeeded.toString())
+            log("fee: ", fee.toString());
+            const totalNeededPlusFeesAndChange = totalNeededPlusFees.add(changeFee);
             if (inputsAmount.eq(totalNeededPlusFees)) {
                 // no change output required, matches exactly
                 needMoreInputs = false;
@@ -472,6 +501,14 @@ export async function addVins(outputs: Array<any>, utxos: Array<ListUTXOs>, need
 
     const fee = BigNumberEthers.from(vbytes).mul(gasPrice);
     const availableAmount = inputsAmount.sub(fee).toNumber()
+
+    log(
+        "inputs: ", inputs.toString(),
+        " change: ", change?.toString(),
+        " inputsAmount: ",  inputsAmount.toString(),
+        " availableAmount: ", availableAmount,
+        " fee: ", fee.toString(),
+    )
 
     return [inputs, amounts, availableAmount, fee, change, changeType];
 }
@@ -650,7 +687,7 @@ export async function serializeTransactionWith(utxos: Array<any>, neededAmount: 
     // we need to filter outputs that are dust
     // something is considered dust
     checkLostPrecisionInGasPrice(BigNumberEthers.from(tx.gasPrice).toNumber());
-    const satoshiPerKb = BigNumberEthers.from(tx.gasPrice).mul(10);
+    const satoshiPerByte = BigNumberEthers.from(tx.gasPrice).div(10);
 
     const vouts: any = [];
     if (transactionType === GLOBAL_VARS.CONTRACT_CREATION) {
@@ -696,7 +733,7 @@ export async function serializeTransactionWith(utxos: Array<any>, neededAmount: 
         utxos,
         neededAmount,
         total.toString(),
-        satoshiPerKb.toString(),
+        satoshiPerByte.toString(),
         hash160PubKey,
     );
 

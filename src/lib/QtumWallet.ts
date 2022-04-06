@@ -22,12 +22,35 @@ const forwardErrors = [
     Logger.errors.INSUFFICIENT_FUNDS
 ];
 
+const minimumGasPriceInGwei = "0x9502f9000";
+const minimumGasPriceInWei = "0x5d21dba000";
+
 // Qtum core wallet and electrum use coin 88
 export const QTUM_BIP44_PATH = "m/44'/88'/0'/0/0";
 // Other wallets use coin 2301
 // for more details, see: https://github.com/satoshilabs/slips/pull/196
 export const SLIP_BIP44_PATH = "m/44'/2301'/0'/0/0";
 export const defaultPath = SLIP_BIP44_PATH;
+
+// @ts-ignore
+function warn(a?, b?, c?, d?, e?, f?, g?) {
+    try {
+        // @ts-ignore
+        console.warn.apply(this, arguments);
+    } catch (e) {
+
+    }
+}
+
+// @ts-ignore
+function log(a?, b?, c?, d?, e?, f?, g?) {
+    try {
+        // @ts-ignore
+        console.log.apply(this, arguments);
+    } catch (e) {
+
+    }
+}
 
 export class QtumWallet extends IntermediateWallet {
 
@@ -43,15 +66,68 @@ export class QtumWallet extends IntermediateWallet {
      * Override to build a raw QTUM transaction signing UTXO's
      */
     async signTransaction(transaction: TransactionRequest): Promise<string> {
-        if (!transaction.gasPrice) {
-            // 40 satoshi in WEI
-            // 40 => 40000000000
-            transaction.gasPrice = "0x9502f9000";
+        let gasBugFixed = true;
+        // @ts-ignore
+        if (this.provider.isClientVersionGreaterThanEqualTo) {
+            // @ts-ignore
+            gasBugFixed = await this.provider.isClientVersionGreaterThanEqualTo(0, 2, 0);
+        } else {
+            throw new Error("Must use QtumProvider");
         }
 
+        const augustFirst2022 = 1659330000000;
+        const now = new Date().getTime();
+        const requireFixedJanus = now > augustFirst2022;
+        const message = "You are using an outdated version of Janus that has a bug that qtum-ethers-wrapper works around, " +
+            "please upgrade your Janus instance and if you have hardcoded gas price in your dapp to update it to " +
+            minimumGasPriceInWei + " - if you use eth_gasPrice then nothing else should be required other than updating Janus. " +
+            "this message will become an error August 1st 2022 when using Janus instances lower than version 0.2.0";
+        if (!gasBugFixed) {
+            if (requireFixedJanus) {
+                throw new Error(message);
+            } else {
+                warn(message);
+            }
+        } else {
+            warn("gas bug is fixed in this janus release")
+        }
+
+        log("tx", transaction.gasPrice?.toString());
+
+        if (!transaction.gasPrice) {
+            log("no gas price....")
+            let gasPrice = minimumGasPriceInWei;
+            if (!gasBugFixed) {
+                gasPrice = minimumGasPriceInGwei;
+            }
+            // 40 satoshi in WEI
+            // 40 => 40000000000
+            // transaction.gasPrice = "0x9502f9000";
+            // 40 => 400000000000
+            // transaction.gasPrice = "0x5d21dba000";
+            transaction.gasPrice = gasPrice;
+        } else if (gasBugFixed) {
+            log("gas bug fixed...")
+            if (requireFixedJanus) {
+                log("require fixed janus....")
+                // no work arounds after aug 1st 2022, worst case: this just means increased gas prices (10x) and shouldn't cause any other issues
+                if (transaction.gasPrice  === minimumGasPriceInGwei) {
+                    log("modifying gas price...")
+                    // hardcoded 400 gwei gas price
+                    // adjust it to be the proper amount and log an error
+                    transaction.gasPrice = minimumGasPriceInWei;
+                    warn("Corrected gas price from 400 gwei to 40 wei, update your dapp to use the correct gas price");
+                }
+            }
+        } else {
+            log("gas supplied: ", transaction.gasPrice, " no fix required")
+        }
+
+        const gasPriceExponent = gasBugFixed ? 'e-10' : 'e-9'
         // convert gasPrice into satoshi
-        let gasPrice = new BigNumber(BigNumberEthers.from(transaction.gasPrice).toString() + 'e-9');
+        let gasPrice = new BigNumber(BigNumberEthers.from(transaction.gasPrice).toString() + gasPriceExponent);
         transaction.gasPrice = gasPrice.toNumber();
+        log("tx.gasPrice = ", transaction.gasPrice)
 
         const tx = await resolveProperties(transaction);
 
