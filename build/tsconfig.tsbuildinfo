@@ -792,13 +792,13 @@
         "affectsGlobalScope": false
       },
       "../src/lib/helpers/utils.ts": {
-        "version": "6433344bfc5d92ae5e85aec4601047a0381786fa9e3a792b3399d13d7b32c170",
+        "version": "6baa4d158a120fc7d0c47f6789f35581ac2531fc6df9fa71ac0140da8e9cccd1",
         "signature": "da5c8292df21932a07f7d967d364c124d02442dde3b282ecbeb49919d361c888",
         "affectsGlobalScope": false
       },
       "../src/lib/QtumProvider.ts": {
-        "version": "2358bd9ded81e761e373dd175298bc416f818f23d979f70ab689d31bdde61e4a",
-        "signature": "512c7d1b93ba140c39ace7650acf1addb584f5f626feaed1f9c28ba2dbe61e13",
+        "version": "1c9b3d579b75bed1191a6e39c21d43a90343cdbd74e83855df1a843d7c2f2e38",
+        "signature": "2f24e98bb554d77a7fd20900d5cc81af5f34707a04c7b605cab70be1049b0446",
         "affectsGlobalScope": false
       },
       "../src/lib/QtumFunctionProvider.ts": {
@@ -812,7 +812,7 @@
         "affectsGlobalScope": false
       },
       "../src/lib/QtumWallet.ts": {
-        "version": "482ccf4af584893decfa53840d111ab16db1a6b4b4c421621926289c90655144",
+        "version": "4ffc960b4cb4c376e200a3e6512f45611130fcba06cd9b0051945ed8165fda90",
         "signature": "2430362dd4ee234e9193d69693d390da6d938be756f354666c01cfd3b650ab36",
         "affectsGlobalScope": false
       },
